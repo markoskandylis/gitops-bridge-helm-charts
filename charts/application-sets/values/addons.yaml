@@ -4,7 +4,7 @@ argocd:
   chartName: argo-cd
   namespace: argocd
   releaseName: argocd
-  defaultVersion: "7.7.8"
+  defaultVersion: "8.1.2"
   chartRepository: "https://argoproj.github.io/argo-helm"
   additionalResources:
     path: "charts/argocd-ingress"
@@ -32,7 +32,7 @@ external-secrets:
   enableAckPodIdentity: false
   namespace: external-secrets
   chartName: external-secrets
-  defaultVersion: "0.17.0"
+  defaultVersion: "0.18.2"
   chartRepository: "https://charts.external-secrets.io"
   additionalResources:
     path: "charts/fleet-secret"
@@ -94,7 +94,7 @@ karpenter:
   chartNamespace: karpenter
   chartName: karpenter
   chartRepository: public.ecr.aws
-  defaultVersion: "1.3.3"
+  defaultVersion: "1.4.3"
   selector:
     matchExpressions:
       - key: enable_karpenter
@@ -152,7 +152,7 @@ cert_manager:
       annotations:
         eks.amazonaws.com/role-arn: '{{default "" (index .metadata.annotations "cert_manager_iam_role_arn") }}'
 external-dns:
-  enabled: false
+  enabled: true
   enableAckPodIdentity: false
   releaseName: external-dns
   namespace: '{{default "external-dns" (index .metadata.annotations "external_dns_namespace") }}'
