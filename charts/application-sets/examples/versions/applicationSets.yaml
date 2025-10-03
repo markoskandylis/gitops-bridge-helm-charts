@@ -3,7 +3,7 @@ releases:
   globals:
     # if we use the chart repo we need to be conected to remote
     chartRepoUrl: https://github.com/markoskandylis/gitops-bridge-helm-charts
-    chartRepoPath: application-sets
+    chartRepoPath: charts/application-sets
     chartRepoRevision: main
     chartRepo: "12345678901.dkr.ecr.eu-west-2.amazonaws.com"
     ecrChartName: "application-sets"
