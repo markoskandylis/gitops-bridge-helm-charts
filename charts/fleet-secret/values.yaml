@@ -1,7 +1,6 @@
 # Example of global values to append if we want to add more endpoints withough replciation
 global:
   gitExternalSecrets:
-    enabled: false
     useGitHubApp: true
     secretStoreRefName: fleet-git-eks-secret-store
     secretStoreRefKind: SecretStore
@@ -32,9 +31,6 @@ externalSecret:
   server: "self"
   secretManagerSecretName: ""
   clusterName: ""
-
-tenantGitExternalSecrets:
-  externalSecrets: {}
 
 ecrAuthenticationToken:
   enabled: false
