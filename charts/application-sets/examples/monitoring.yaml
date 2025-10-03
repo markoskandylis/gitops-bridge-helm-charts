@@ -10,71 +10,71 @@ spec:
   goTemplateOptions:
     - missingkey=error
   generators:
-  - matrix:
-      generators:
-        - matrix:
-            generators:
-              - clusters:
-                  selector:
-                    matchLabels:
-                      fleet_member: hub-cluster
-                  values:
-                    chartName: application-sets  
-                    chartRepo: "12345678910.dkr.ecr.eu-west-2.amazonaws.com"      
-                    chartPath: "charts/application-sets"
-                    applicationSetGroup: "monitoring"
-                    groupRelease: '{{default "" (index .metadata.labels "monitoringRelease")}}'
-                    useSelectors: "false"
-                    useVersionSelectors: "true"
-              - git:
-                  repoURL: '{{ .metadata.annotations.fleet_repo_url }}'
-                  revision: '{{ .metadata.annotations.fleet_repo_revision }}'
-                  files:
-                    - path: "{{ .metadata.annotations.fleet_repo_basepath }}/bootstrap/versions/applicationSets.yaml"
-        - list:
-            elementsYaml: |
-                  {{- $releaseTypes := index .releases .values.applicationSetGroup | toJson | fromJson -}}
-                  {{- $result := list -}}
-                  {{- $defaultVersion := dict -}}
-                  {{- /* Defining the Default Version in case we need to fall back */ -}}
-                  {{- range $releaseType := $releaseTypes -}}
-                    {{- if eq $releaseType.type "default" -}}
-                      {{- $defaultVersion = $releaseType -}}
-                    {{- end -}}
+    - matrix:
+        generators:
+          - matrix:
+              generators:
+                - clusters:
+                    selector:
+                      matchLabels:
+                        fleet_member: hub-cluster
+                    values:
+                      chartName: application-sets
+                      chartRepo: "12345678910.dkr.ecr.eu-west-2.amazonaws.com"
+                      chartPath: "charts/application-sets"
+                      applicationSetGroup: "monitoring"
+                      groupRelease: '{{default "" (index .metadata.labels "monitoringRelease")}}'
+                      useSelectors: "true"
+                      useVersionSelectors: "true"
+                - git:
+                    repoURL: "{{ .metadata.annotations.fleet_repo_url }}"
+                    revision: "{{ .metadata.annotations.fleet_repo_revision }}"
+                    files:
+                      - path: "{{ .metadata.annotations.fleet_repo_basepath }}/bootstrap/versions/applicationSets.yaml"
+          - list:
+              elementsYaml: |
+                {{- $globals := .releases.globals -}}
+                {{- $releaseNames := index .releases .values.applicationSetGroup | toJson | fromJson -}}
+                {{- $groupRelease := .values.groupRelease}}
+                {{- $firstRelease := index $releaseNames 0 -}}
+                {{- $result := list -}}
+                {{- /* If the values of the group release is empty or we dont use version selectors then we use only the first element of the list */ -}}
+                {{- if or (eq  $groupRelease "") (eq .values.useVersionSelectors "false") -}}
+                  {{- $mergedRelease := merge $firstRelease $globals -}}
+                  {{- $mergedRelease = merge $mergedRelease (dict "totalReleases" (len $releaseNames)) -}}
+                  {{- $result = append $result $mergedRelease -}}
+                {{- else -}}
+                {{- /* We look for the defined releases */ -}}
+                {{- $found := false -}}
+                {{- range $releaseName := $releaseNames -}}
+                  {{- if eq $releaseName.type  $groupRelease -}}
+                    {{- $found = true -}}
                   {{- end -}}
-                  {{- /* We look for the defined releases */ -}}
-                  {{- range $releaseType := $releaseTypes -}}
-                    {{- /* Case 1: If selectors is true, include all group releases */ -}}
-                    {{- if eq $.values.useSelectors "true" -}}
-                      {{- $result = append $result $releaseType -}}
-                    {{- /* Case 2: If group version Release value exists, only include matching releases */ -}}
-                    {{- else if $.values.groupRelease -}}
-                      {{- if or (not $releaseType.type) (eq $releaseType.type $.values.groupRelease) -}}
-                        {{- $result = append $result $releaseType -}}
-                      {{- end -}}
-                    {{- /* Case 3: Default case - include version if it's the default type */ -}}
-                    {{- else -}}
-                      {{- if eq $releaseType.type "default" -}}
-                        {{- $result = append $result $releaseType -}}
-                      {{- end -}}
-                    {{- end -}}
+                {{- end -}}
+                {{- if $found -}}
+                  {{- range $releaseName := $releaseNames -}}
+                    {{- $mergedReleaseValues := merge $releaseName $globals -}}
+                    {{- $mergedReleaseValues = merge $mergedReleaseValues (dict "totalReleases" (len $releaseNames)) -}}
+                    {{- $result = append $result $mergedReleaseValues -}}
                   {{- end -}}
-                  {{- /* If no releases were selected, use default */ -}}
-                  {{- if eq (len $result) 0 -}}
-                    {{- $result = append $result $defaultVersion -}}
-                  {{- end -}}
-                  {{ $result | toJson }}
+                {{- else -}}
+                  {{- $mergedRelease := merge $firstRelease $globals -}}
+                  {{- $mergedRelease = merge $mergedRelease (dict "totalReleases" (len $releaseNames)) -}}
+                  {{- $result = append $result $mergedRelease -}}
+                {{- end -}}
+                {{- end -}}
+                {{ $result | toJson }}
   ###################################################
   #base template (everything common)
   ###################################################
   template:
     metadata:
-      name: 'cluster-{{.values.applicationSetGroup}}-{{.name}}-{{.type | lower }}'
+      name: "cluster-{{.values.applicationSetGroup}}-{{.name}}-{{.type | lower }}"
     spec:
       project: default
       destination:
         namespace: argocd
-        name: '{{ .name }}'
+        name: "{{ .name }}"
       # syncPolicy is identical for both variants
       syncPolicy:
         automated:
@@ -90,31 +90,61 @@ spec:
   # conditional sources
   ###################################################
   templatePatch: |
+    {{- $commonValuesPath := printf "%s/%s.yaml" .values.chartName .values.applicationSetGroup  -}}
+    {{- $repoNames := list "addons"  -}}
+
+    {{- $environment := .metadata.labels.environment -}}
+
+    {{- $tenantPath := "" -}}
+    {{- if and (hasKey . "tenant") .tenant -}}
+      {{- $tenantPath = printf "%s" .tenant -}}
+    {{- else if (index .metadata.labels "tenant") -}}
+      {{- $tenantPath = printf "%s" .metadata.labels.tenant -}}
+    {{- end -}}
+
+
+    {{- $clusterName := "" -}}
+    {{- if and (hasKey . "clusterName") .clusterName -}}
+      {{- $clusterName = .clusterName -}}
+    {{- else  -}}
+      {{- $clusterName = .name -}}
+    {{- end -}}
+
+    {{- $pathPatterns := list
+      (printf "%s/defaults" $tenantPath) 
+      (printf "%s/environments/%s/defaults" $tenantPath $environment) 
+      (printf "%s/environments/%s/clusters/%s" $tenantPath $environment $clusterName) 
+    -}}
+
     spec:
       sources:
-        - ref: values
-          repoURL: '{{ .metadata.annotations.addons_repo_url }}'
-          targetRevision: '{{ .metadata.annotations.addons_repo_revision }}'
+      {{- range $repoName := $repoNames }}
+        - repoURL: '{{default (index $.metadata.annotations (printf "%s_repo_url" $repoName)) (index $ "repoUrl")}}'
+          targetRevision: '{{default (index $.metadata.annotations (printf "%s_repo_revision" $repoName)) (index $ "targetRevision")}}'
+          ref: {{$repoName}}Values
+      {{- end }}
        {{- if  eq .use_helm_repo_path "false" }}
         - repoURL: '{{default .values.chartRepo .chartRepo }}'
           chart: '{{ default .values.chartName .ecrChartName  }}'
           targetRevision: '{{.version}}'
       {{- else }}
-        - repoURL: '{{ .metadata.annotations.addons_repo_url }}'
-          path: '{{ .values.chartPath }}'
-          targetRevision: '{{ .metadata.annotations.addons_repo_revision }}'
+        - repoURL: '{{default (index .metadata.annotations "chartRepoUrl") (index . "chartRepoUrl") }}'
+          path:    '{{ default .values.chartPath (index . "chartRepoPath")}}'
+          targetRevision: '{{default  (index .metadata.annotations "chartRepoRevision") (index . "chartRepoRevision") }}'
       {{- end }}
           helm:
             ignoreMissingValueFiles: true
             valuesObject:
-              useSelectors: false
+              useSelectors: '{{.values.useSelectors}}'
               useVersionSelectors: '{{.values.useVersionSelectors}}'
-            # Defining the way to group monitoring This application set will handly monitoring and ACK values
+              applicationSetGroup: {{.values.applicationSetGroup}}
+            # Defining the way to group addons This application set will handly Addons and ACK values
               mergeValues:
                 monitoring: 
                   use: true
               releaseType: '{{.type | lower }}'
-              {{- if eq .values.useVersionSelectors "true"}}
+              # If we are using version selector we add the version of the releases on the matchlabels
+              {{- if and (eq .values.useVersionSelectors "true") (or (eq .type .values.groupRelease) (gt (int .totalReleases) 1)) }}
               releases:
                 {{.values.applicationSetGroup}}Release: '{{.type | lower}}'
               {{- end }}
@@ -122,11 +152,13 @@ spec:
               globalSelectors:
                 fleet_member: hub-cluster
               {{- end }}
-              valueFiles:
-                - defaults/{{.values.applicationSetGroup}}
-                - clusters/{{`{{ .nameNormalized }}`}}/{{.values.applicationSetGroup}}
+            # Those are the Value files to read for the Whole group of applciationsdts
             valueFiles:
-              - $values/{{ .metadata.annotations.addons_repo_basepath }}/bootstrap/defaults/{{.values.applicationSetGroup}}.yaml
-              - $values/{{ .metadata.annotations.addons_repo_basepath }}/{{ .metadata.labels.tenant }}/defaults/{{ .values.chartName }}/{{.values.applicationSetGroup}}.yaml
-              - $values/{{ .metadata.annotations.addons_repo_basepath }}/{{ .metadata.labels.tenant }}/clusters/{{ .name }}/{{ .values.chartName }}/{{.values.applicationSetGroup}}.yaml
-              - $values/{{ .metadata.annotations.addons_repo_basepath }}/{{ .metadata.labels.tenant }}/environments/{{ .metadata.labels.environment }}/{{ .values.chartName }}/{{.values.applicationSetGroup}}.yaml
+              - $addonsValues/addons/bootstrap/defaults/{{.values.applicationSetGroup}}.yaml
+            {{- range $repoName := $repoNames }}
+              {{- $repoRef := printf "%sValues" $repoName }}
+              {{- $basePath := default (index $.metadata.annotations (printf "%s_repo_basepath" $repoName)) (index $ (printf "%s_repo_basepath" $repoName)) }}
+              {{- range $pattern := $pathPatterns }}
+              - ${{ $repoRef }}/{{ $basePath }}/{{ $pattern }}/{{ $commonValuesPath }}
+              {{- end }}
+            {{- end }}
