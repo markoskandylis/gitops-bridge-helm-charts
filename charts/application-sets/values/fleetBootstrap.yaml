@@ -4,20 +4,20 @@ fleet-external-secrets:
   namespace: platform-system
   releaseName: fleet-external-secrets
   chartName: external-secrets
-  defaultVersion: "0.10.3"
+  defaultVersion: "0.18.0"
   chartRepository: "https://charts.external-secrets.io"
   additionalResources:
     path: "charts/fleet-secret"
     type: "ecr-token"
     helm:
-     releaseName: ecr-token
+      releaseName: ecr-token
   valuesObject:
     serviceAccount:
       name: "external-secrets-sa"
     scopedNamespace: "platform-system"
     scopedRBAC: true
 fleet-argocd:
-  enabled:  true
+  enabled: true
   enableAckPodIdentity: false
   chartName: argo-cd
   namespace: platform-system
@@ -33,9 +33,9 @@ fleet-iam-chart:
   chartRepository: public.ecr.aws
   valuesObject:
     aws:
-      region: '{{.metadata.annotations.aws_region}}'
+      region: "{{.metadata.annotations.aws_region}}"
     serviceAccount:
-      name: '{{.metadata.annotations.ack_iam_service_account}}'
+      name: "{{.metadata.annotations.ack_iam_service_account}}"
 fleet-ack-eks:
   chartName: eks-chart
   namespace: ack-system
@@ -45,7 +45,6 @@ fleet-ack-eks:
   chartRepository: public.ecr.aws
   valuesObject:
     aws:
-      region: '{{.metadata.annotations.aws_region}}'
+      region: "{{.metadata.annotations.aws_region}}"
     serviceAccount:
-      name: '{{.metadata.annotations.ack_eks_service_account}}'
-    
+      name: "{{.metadata.annotations.ack_eks_service_account}}"
