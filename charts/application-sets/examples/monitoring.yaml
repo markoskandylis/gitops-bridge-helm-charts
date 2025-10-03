@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: cluster-monitoring
+  name: cluster-addons
   namespace: argocd
 spec:
   syncPolicy:
@@ -20,11 +20,11 @@ spec:
                         fleet_member: hub-cluster
                     values:
                       chartName: application-sets
-                      chartRepo: "12345678910.dkr.ecr.eu-west-2.amazonaws.com"
+                      chartRepo: "1234567890.dkr.ecr.eu-west-2.amazonaws.com"
                       chartPath: "charts/application-sets"
                       applicationSetGroup: "monitoring"
                       groupRelease: '{{default "" (index .metadata.labels "monitoringRelease")}}'
-                      useSelectors: "true"
+                      useSelectors: "false"
                       useVersionSelectors: "true"
                 - git:
                     repoURL: "{{ .metadata.annotations.fleet_repo_url }}"
@@ -47,7 +47,7 @@ spec:
                 {{- /* We look for the defined releases */ -}}
                 {{- $found := false -}}
                 {{- range $releaseName := $releaseNames -}}
-                  {{- if eq $releaseName.type  $groupRelease -}}
+                  {{- if eq $releaseName.releaseName  $groupRelease -}}
                     {{- $found = true -}}
                   {{- end -}}
                 {{- end -}}
@@ -69,7 +69,7 @@ spec:
   ###################################################
   template:
     metadata:
-      name: "cluster-{{.values.applicationSetGroup}}-{{.name}}-{{.type | lower }}"
+      name: "cluster-{{.values.applicationSetGroup}}-{{.name}}-{{.releaseName | lower }}"
     spec:
       project: default
       destination:
@@ -138,15 +138,16 @@ spec:
               useSelectors: '{{.values.useSelectors}}'
               useVersionSelectors: '{{.values.useVersionSelectors}}'
               applicationSetGroup: {{.values.applicationSetGroup}}
+              groupRelease: '{{.values.groupRelease}}'
             # Defining the way to group addons This application set will handly Addons and ACK values
               mergeValues:
                 monitoring: 
                   use: true
-              releaseType: '{{.type | lower }}'
+              releaseName: '{{default "" .releaseName | lower }}'
               # If we are using version selector we add the version of the releases on the matchlabels
-              {{- if and (eq .values.useVersionSelectors "true") (or (eq .type .values.groupRelease) (gt (int .totalReleases) 1)) }}
+              {{- if and (eq .values.useVersionSelectors "true") (or (eq .releaseName .values.groupRelease) (gt (int .totalReleases) 1)) }}
               releases:
-                {{.values.applicationSetGroup}}Release: '{{.type | lower}}'
+                {{.values.applicationSetGroup}}Release: '{{.releaseName | lower}}'
               {{- end }}
               {{- if eq .values.useSelectors "false"}}
               globalSelectors:
