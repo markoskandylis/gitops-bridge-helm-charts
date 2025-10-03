@@ -25,9 +25,17 @@ Template to generate additional resources configuration
 {{- if $chartConfig.additionalResources.helm }}
   helm:
     releaseName: '{{`{{ .name }}`}}-{{ $chartConfig.additionalResources.helm.releaseName }}'
+    {{- if or $values.globalValuesObject $chartConfig.additionalResources.helm.valuesObject }}
+    {{/* Create a fresh copy for this component only */}}
+    {{- $chartValuesObject := dict }}
+    {{- if $values.globalValuesObject }}
+      {{- $chartValuesObject = deepCopy $values.globalValuesObject }}
+    {{- end }}
     {{- if $chartConfig.additionalResources.helm.valuesObject }}
+      {{- $chartValuesObject = mergeOverwrite $chartValuesObject $chartConfig.additionalResources.helm.valuesObject }}
+    {{- end }}
     valuesObject:
-    {{- $chartConfig.additionalResources.helm.valuesObject | toYaml | nindent 6 }}
+      {{- toYaml $chartValuesObject | nindent 12 }}
     {{- end }}
     ignoreMissingValueFiles: true
     valueFiles:
@@ -39,7 +47,6 @@ Template to generate additional resources configuration
 {{- end }}
 {{- end }}
 
-
 {{/*
 Define the values path for reusability
 */}}
@@ -49,10 +56,22 @@ Define the values path for reusability
 {{- $valueFiles := .valueFiles -}}
 {{- $chartType := .chartType -}}
 {{- $values := .values -}}
+{{- $valuesFileName := default "values.yaml" $chartConfig.valuesFileName -}}
+{{- $applicationSetGroup := default "" $values.applicationSetGroup -}}
+
 {{- with .valueFiles }}
 {{- range . }}
-- $values/{{ $values.repoURLGitBasePath }}/{{ . }}/{{ $nameNormalize }}{{ if $chartType }}/{{ $chartType }}{{ end }}/{{ if $chartConfig.valuesFileName }}{{ $chartConfig.valuesFileName }}{{ else }}values.yaml{{ end }}
-- $values/{{ $values.repoURLGitBasePath }}/{{ if $values.useValuesFilePrefix }}{{ $values.valuesFilePrefix }}{{ end }}{{ . }}/{{ $nameNormalize }}{{ if $chartType }}/{{ $chartType }}{{ end }}/{{ if $chartConfig.valuesFileName }}{{ $chartConfig.valuesFileName }}{{ else }}values.yaml{{ end }}
+{{/* Path with applicationSetGroup if available */}}
+{{- if ne $values.repoURLGitBasePath "" }}
+- $values/{{$values.repoURLGitBasePath}}
+{{- else}}
+- $values{{$values.repoURLGitBasePath}}
+{{- end }}
+{{- if $values.useValuesFilePrefix -}}/{{$values.valuesFilePrefix}}{{- end -}}/{{.}}
+{{- if $applicationSetGroup -}}/{{$applicationSetGroup}}{{- end -}}/{{$nameNormalize}}
+{{- if $chartType -}}/{{$chartType}}{{- end -}}
+{{- if $chartConfig.valuesFileName -}}/{{$chartConfig.valuesFileName}}
+{{- else -}}/values.yaml{{- end -}}
 {{- end }}
 {{- end }}
 {{- end }}
