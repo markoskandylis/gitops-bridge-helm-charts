@@ -1,4 +1,14 @@
 {{- if .Values.ecrAuthenticationToken.enabled }}
+{{- $globalEndpoints := list }}
+{{- if and .Values.global .Values.global.ecrAuthenticationToken .Values.global.ecrAuthenticationToken.registry_endpoints }}
+{{- $globalEndpoints = .Values.global.ecrAuthenticationToken.registry_endpoints }}
+{{- end }}
+{{- $clusterEndpoints := .Values.ecrAuthenticationToken.registry_endpoints | default list }}
+{{/*
+Merging unique ECR Endpoints
+*/}}
+{{- $mergedEndpoints := concat $globalEndpoints $clusterEndpoints | uniq }}
+
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: ECRAuthorizationToken
 metadata:
@@ -7,9 +17,9 @@ metadata:
 spec:
   region: {{.Values.ecrAuthenticationToken.region}}
 
-{{- range $idx, $endpoint := .Values.ecrAuthenticationToken.registry_endpoints }}
+{{- range $idx, $endpoint := $mergedEndpoints }}
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: {{$.Values.ecrAuthenticationToken.name}}-{{$idx}}
