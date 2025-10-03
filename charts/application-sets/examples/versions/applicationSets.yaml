@@ -1,31 +1,22 @@
 # applicationSets.yaml
 releases:
+  globals:
+    # if we use the chart repo we need to be conected to remote
+    chartRepoUrl: https://github.com/markoskandylis/gitops-bridge-helm-charts
+    chartRepoPath: application-sets
+    chartRepoRevision: main
+    chartRepo: "12345678901.dkr.ecr.eu-west-2.amazonaws.com"
+    ecrChartName: "application-sets"
+    version: 0.3.1
   addons:
-  - type: "default"
-    use_helm_repo_path: "true"
-    chartRepo: "12345678910.dkr.ecr.eu-west-2.amazonaws.com"
-    ecrChartName: "application-sets"
-    version: 0.1.0
-  - type: "release1"
-    use_helm_repo_path: "false"
-    chartRepo: "12345678910.dkr.ecr.eu-west-2.amazonaws.com"
-    ecrChartName: "application-sets"
-    version: 0.2.0
+    - releaseName: "default"
+      use_helm_repo_path: "true"
   monitoring:
-  - type: "default"
-    use_helm_repo_path: "true"
-    chartRepo: "12345678910.dkr.ecr.eu-west-2.amazonaws.com"
-    ecrChartName: "application-sets"
-    version: 0.1.0
+    - releaseName: "default"
+      use_helm_repo_path: "true"
   resources:
-  - type: "default"
-    use_helm_repo_path: "true"
-    ecrChartName: "application-sets"
-    chartRepo: "12345678910.dkr.ecr.eu-west-2.amazonaws.com"
-    version: 0.1.0
+    - releaseName: "default"
+      use_helm_repo_path: "true"
   fleet:
-  - type: "default"
-    use_helm_repo_path: "true"
-    ecrChartName: "application-sets"
-    chartRepo: "12345678910.dkr.ecr.eu-west-2.amazonaws.com"
-    version: 0.1.0
+    - releaseName: "default"
+      use_helm_repo_path: "true"
