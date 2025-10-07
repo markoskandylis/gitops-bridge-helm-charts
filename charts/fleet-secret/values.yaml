@@ -1,11 +1,5 @@
 # Example of global values to append if we want to add more endpoints withough replciation
 global:
-  gitExternalSecrets:
-    useGitHubApp: true
-    secretStoreRefName: fleet-git-eks-secret-store
-    secretStoreRefKind: SecretStore
-    externalSecrets: {}
-
   # ecrAuthenticationToken:
   #   registry_endpoints:
   #     - 1234456698772.dkr.ecr.eu-west-2.amazonaws.com
@@ -23,6 +17,19 @@ gitExternalSecrets:
   secretStoreRefName: fleet-git-eks-secret-store
   secretStoreRefKind: SecretStore
   externalSecrets: {}
+  # We can overwrite above values on the cluster secret level
+  # Example:
+  # externalSecrets:
+  #   addons:
+  #     secretName: git-addons
+  #     secretManagerSecretName: shared/addons
+  #     secretType: repository
+  #   resources:
+  #     secretName: git-resources
+  #     secretStoreRefName: cluster-git-eks-secret-store
+  #     secretStoreRefKind: ClusterSecretStore
+  #     secretManagerSecretName: shared/resources
+  #     secretType: repository
 
 externalSecret:
   enabled: false

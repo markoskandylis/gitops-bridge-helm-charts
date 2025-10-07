@@ -160,6 +160,11 @@ gitExternalSecrets:
       secretManagerSecretName: "git-addons-creds"
 ```
 
+Values defined under `global.gitExternalSecrets.externalSecrets` act as shared defaults and
+are deep-merged with the chart-level `gitExternalSecrets.externalSecrets`. Define the common
+portions (for example `secretName`, `secretType`, or annotations) globally and only override
+the differing keys per cluster or environment.
+
 ## Notes
 
 - All secrets are created in the ArgoCD namespace by default
