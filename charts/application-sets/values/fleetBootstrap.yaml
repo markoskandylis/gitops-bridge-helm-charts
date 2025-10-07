@@ -22,7 +22,7 @@ fleet-argocd:
   chartName: argo-cd
   namespace: platform-system
   releaseName: fleet-argocd
-  defaultVersion: "8.1.2"
+  defaultVersion: "8.5.8"
   chartRepository: "https://argoproj.github.io/argo-helm"
   valuesObject:
     global:
