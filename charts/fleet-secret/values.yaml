@@ -25,6 +25,7 @@ gitExternalSecrets:
   #     secretManagerSecretName: shared/addons
   #     secretType: repository
   #   resources:
+  #     useHttp: true
   #     secretName: git-resources
   #     secretStoreRefName: cluster-git-eks-secret-store
   #     secretStoreRefKind: ClusterSecretStore
